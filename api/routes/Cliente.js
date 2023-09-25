@@ -3,6 +3,7 @@ const {
   getCliente,
   GeneraToken,
   getConsultaCliente,
+  getNit,
 } = require("../controllers/Clientes");
 const router = expres.Router();
 
@@ -10,6 +11,7 @@ const router = expres.Router();
 
 router.get("/", getCliente);
 router.get("/GeneraToken", GeneraToken);
+router.get("/nit", getNit);
 router.get("/:id", getConsultaCliente);
 
 module.exports = router;

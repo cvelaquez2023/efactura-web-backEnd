@@ -13,6 +13,25 @@ const getCliente = async (req, res) => {
   }
 };
 
+const getNit = async (req, res) => {
+  try {
+    const errores = [];
+    const nit = req.query.nit;
+    console.log(nit);
+
+    const data = await clienteModel.findOne({ where: { Nit: nit } });
+    if (!data) {
+      return res.send({
+        results: "",
+        result: "false",
+        error: "No Existe el Nit",
+      });
+    }
+    res.send({ results: data, result: "true", error: errores });
+  } catch (error) {
+    console.log(error);
+  }
+};
 const GeneraToken = async (req, res) => {
   //let verificactionLink;
   const message = "Se genero Token sin problema";
@@ -46,7 +65,7 @@ const getConsultaCliente = async (req, res) => {
     if (!jwtPayload) {
       return res
         .status(401)
-        .send({ message: "El tiempo para realizar cambio ha expirado" });
+        .send({ message: "El tiempo para realizar cambio  expirado" });
     }
     const cliente = await clienteModel.findOne({
       where: { Token: resetToken },
@@ -62,4 +81,4 @@ const getConsultaCliente = async (req, res) => {
   }
 };
 
-module.exports = { getCliente, GeneraToken, getConsultaCliente };
+module.exports = { getCliente, GeneraToken, getConsultaCliente, getNit };
