@@ -121,7 +121,7 @@ const putCliente = async (req, res) => {
     }
   );
 
-  //Actualizamos  el cliente por medio de registro
+  //Actualizamos  el cliente por medio de registro y tipoGiro
 
   const _Actulizar = await sequelize.query(
     "update dbo.Clientes set Nrc=(:_Nrc),Alias=(:_Alias),Nombre=(:_Nombre),Correo=(:_Correo),CorreoDte=(:_CorreoDte),Telefono=(:_Telefono),Giro=(:_Giro),Zona=(:_Zona),actualizado=(:_actualizado),CodGiro=(:_CodGiro),NombreCodGiro=(:_NombreCodGiro), sincronizado_el=getDate() where replace(nit,'-','')=replace((:_nit),'-','')",
