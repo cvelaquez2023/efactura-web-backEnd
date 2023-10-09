@@ -27,9 +27,9 @@ const getNit = async (req, res) => {
 
     //const data = await clienteModel.findOne({ where: { Nit: nit } });
     const data = await sequelize.query(
-      "select Cliente_id,Cliente,Nombre,Alias, Direccion,Correo,CorreoDte,Telefono,pais,Nit,Nrc,Giro,NombreCodGiro, CodGiro,Zona,Token, actualizado,Vendedor,compania from dbo.Clientes where replace(Nit,'-','')=(:nit) and compania=(:Compania)",
+      "select Cliente_id,Cliente,Nombre,Alias, Direccion,Correo,CorreoDte,Telefono,pais,Nit,Nrc,Giro,NombreCodGiro, CodGiro,Zona,Token, actualizado,Vendedor,compania from dbo.Clientes where replace(Nit,'-','')=replace((:nit),'-','') and compania=(:Compania)",
       {
-        replacements: { nit: nit.replaceAll("-", ""), Compania: conjunto },
+        replacements: { nit: nit, Compania: conjunto },
       },
       { type: QueryTypes.SELECT }
     );
