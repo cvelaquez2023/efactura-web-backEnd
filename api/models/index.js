@@ -3,6 +3,7 @@ const models = {
   municipiosModel: require("./DetMunicipios"),
   clienteModel: require("./Cliente"),
   actividadEconomicaModel: require("./ActividadEconomica"),
+  conjuntoModel: require("./Conjunto"),
 };
 
 module.exports = models;

@@ -23,6 +23,9 @@ const Cliente = sequelize.define(
     Correo: {
       type: DataTypes.STRING,
     },
+    CorreoDte: {
+      type: DataTypes.STRING,
+    },
     Telefono: {
       type: DataTypes.STRING,
     },

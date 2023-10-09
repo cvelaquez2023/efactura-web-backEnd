@@ -4,10 +4,13 @@ const {
   GeneraToken,
   getConsultaCliente,
   getNit,
+  putCliente,
 } = require("../controllers/Clientes");
 const router = expres.Router();
 
 //TODO http://localhost/DteMunicipios
+
+router.put("/:nit", putCliente);
 
 router.get("/", getCliente);
 router.get("/GeneraToken", GeneraToken);

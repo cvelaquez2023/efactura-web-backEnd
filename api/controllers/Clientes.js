@@ -1,4 +1,10 @@
-const { clienteModel } = require("../models");
+const { QueryTypes } = require("sequelize");
+const { sequelize } = require("../config/mssql");
+const {
+  clienteModel,
+  conjuntoModel,
+  actividadEconomicaModel,
+} = require("../models");
 const { tokenSign, verifyToken } = require("../utils/handleJwt");
 
 const getCliente = async (req, res) => {
@@ -17,17 +23,25 @@ const getNit = async (req, res) => {
   try {
     const errores = [];
     const nit = req.query.nit;
-    console.log(nit);
+    const conjunto = req.query.conjunto;
 
-    const data = await clienteModel.findOne({ where: { Nit: nit } });
-    if (!data) {
+    //const data = await clienteModel.findOne({ where: { Nit: nit } });
+    const data = await sequelize.query(
+      "select Cliente_id,Cliente,Nombre,Alias, Direccion,Correo,CorreoDte,Telefono,pais,Nit,Nrc,Giro,NombreCodGiro, CodGiro,Zona,Token, actualizado,Vendedor,compania from dbo.Clientes where replace(Nit,'-','')=(:nit) and compania=(:Compania)",
+      {
+        replacements: { nit: nit.replaceAll("-", ""), Compania: conjunto },
+      },
+      { type: QueryTypes.SELECT }
+    );
+
+    if (data[0].length == 0) {
       return res.send({
         results: "",
-        result: "false",
+        succes: false,
         error: "No Existe el Nit",
       });
     }
-    res.send({ results: data, result: "true", error: errores });
+    res.send({ results: data[0], succes: true, error: errores });
   } catch (error) {
     console.log(error);
   }
@@ -71,14 +85,75 @@ const getConsultaCliente = async (req, res) => {
       where: { Token: resetToken },
     });
 
-    //dataNew = JSON.stringify(cliente[0]);
-    //dataNew = JSON.parse(dataNew);
+    const conjunto = await conjuntoModel.findOne({
+      where: { Conjunto_Id: cliente.compania, Activo: true },
+    });
 
-    //console.log(dataNew);
-    res.send({ results: cliente, result: "true", error: "" });
+    if (!conjunto) {
+      res.send({
+        results: conjunto,
+        succes: false,
+        error: "El Sitio esta Inactivo",
+      });
+    } else {
+      res.send({
+        results: conjunto,
+        succes: true,
+        error: "",
+      });
+    }
   } catch (error) {
     console.log(error);
   }
 };
 
-module.exports = { getCliente, GeneraToken, getConsultaCliente, getNit };
+const putCliente = async (req, res) => {
+  console.log(req.params);
+  console.log(req.body);
+  //consultamos el codgo del giro por medio del nombre
+  const _codGiro = await sequelize.query(
+    "select Codigo from dbo.DteCat019 where Upper(Valores)=Upper((:dato))",
+    {
+      replacements: { dato: req.body.CodGiro },
+    },
+    {
+      type: QueryTypes.SELECT,
+    }
+  );
+
+  //Actualizamos  el cliente por medio de registro
+
+  const _Actulizar = await sequelize.query(
+    "update dbo.Clientes set Nrc=(:_Nrc),Alias=(:_Alias),Nombre=(:_Nombre),Correo=(:_Correo),CorreoDte=(:_CorreoDte),Telefono=(:_Telefono),Giro=(:_Giro),Zona=(:_Zona),actualizado=(:_actualizado),CodGiro=(:_CodGiro),NombreCodGiro=(:_NombreCodGiro), sincronizado_el=getDate() where replace(nit,'-','')=replace((:_nit),'-','')",
+    {
+      replacements: {
+        _Nrc: req.body.Nrc,
+        _Alias: req.body.Alias,
+        _Nombre: req.body.Nombre,
+        _Correo: req.body.Correo,
+        _CorreoDte: req.body.CorreoDte,
+        _Telefono: req.body.Telefono,
+        _Giro: req.body.Giro,
+        _Zona: req.body.zona,
+        _actualizado: req.body.actualizado,
+        _CodGiro: _codGiro[0][0].Codigo,
+        _nit: req.body.Nit,
+        _NombreCodGiro: req.body.CodGiro,
+      },
+    }
+  );
+
+  return res.send({
+    results: "Actulizado con Existo",
+    succes: true,
+    error: "",
+  });
+};
+
+module.exports = {
+  getCliente,
+  GeneraToken,
+  getConsultaCliente,
+  getNit,
+  putCliente,
+};
