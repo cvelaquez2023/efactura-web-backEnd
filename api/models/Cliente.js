@@ -53,6 +53,12 @@ const Cliente = sequelize.define(
     actualizado: {
       type: DataTypes.BOOLEAN,
     },
+    Subcribe: {
+      type: DataTypes.BOOLEAN,
+    },
+    confirmado: {
+      type: DataTypes.BOOLEAN,
+    },
     Vendedor: {
       type: DataTypes.STRING,
     },

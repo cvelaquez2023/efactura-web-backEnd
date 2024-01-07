@@ -7,7 +7,7 @@ const tokenSign = async (datos) => {
       compania: datos.compania,
     },
     JWT_SECRET,
-    { expiresIn: "720h" }
+    { expiresIn: "60d" }
   );
   return sign;
 };
@@ -20,4 +20,16 @@ const verifyToken = async (tokenJwt) => {
   }
 };
 
-module.exports = { tokenSign, verifyToken };
+const tokenSigEmail = async (datos) => {
+  const sign = jwt.sign(
+    {
+      nit: datos.nit,
+      correo: datos.email,
+      cliente: datos.cliente,
+    },
+    JWT_SECRET,
+    { expiresIn: "8d" }
+  );
+  return sign;
+};
+module.exports = { tokenSign, verifyToken, tokenSigEmail };

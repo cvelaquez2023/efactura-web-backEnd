@@ -5,8 +5,9 @@ const {
   conjuntoModel,
   actividadEconomicaModel,
 } = require("../models");
-const { tokenSign, verifyToken } = require("../utils/handleJwt");
-
+const { tokenSign, verifyToken, tokenSigEmail } = require("../utils/handleJwt");
+const { transporter } = require("../config/mailer");
+const host = process.env.HOST;
 const getCliente = async (req, res) => {
   //Obtener lista de la base de datos
   try {
@@ -27,7 +28,7 @@ const getNit = async (req, res) => {
 
     //const data = await clienteModel.findOne({ where: { Nit: nit } });
     const data = await sequelize.query(
-      "select Cliente_id,Cliente,Nombre,Alias, Direccion,Correo,CorreoDte,Telefono,pais,Nit,Nrc,Giro,NombreCodGiro, CodGiro,Zona,Token, actualizado,Vendedor,compania from dbo.Clientes where replace(Nit,'-','')=replace((:nit),'-','') and compania=(:Compania)",
+      "select Cliente_id,Cliente,Nombre,Alias, Direccion,Correo,CorreoDte,Telefono,pais,Nit,Nrc,Giro,NombreCodGiro, CodGiro,Zona,Token, actualizado,Vendedor,compania, Subcribe from dbo.Clientes where replace(Nit,'-','')=replace((:nit),'-','') and compania=(:Compania)",
       {
         replacements: { nit: nit, Compania: conjunto },
       },
@@ -48,38 +49,57 @@ const getNit = async (req, res) => {
 };
 const GeneraToken = async (req, res) => {
   //let verificactionLink;
+  const idCompania = req.body.compania;
+
   const message = "Se genero Token sin problema";
   try {
     const cliente = await clienteModel.findAll({
       attributes: ["Cliente", "compania"],
+      where: { compania: idCompania },
     });
+    let token = "";
     for (let a = 0; a < cliente.length; a++) {
       const element = cliente[a];
       const datos = {
         cliente: element.Cliente,
         compania: element.compania,
       };
-      const token = await tokenSign(datos);
+      token = await tokenSign(datos);
+      //console.log(token);
 
+      //Fenerar token por cliente
+      /*
       const updateToken = await clienteModel.update(
         {
           Token: token,
         },
         { where: { Cliente: element.Cliente } }
       );
+      */
     }
-    res.send({ message });
+    //generar token por compañia
+    const updateToken = await clienteModel.update(
+      {
+        Token: token,
+      },
+      { where: { compania: req.body.compania } }
+    );
+    res.send({ message, tokend: token });
   } catch (error) {}
 };
 const getConsultaCliente = async (req, res) => {
   const resetToken = req.params.id;
+
   let jwtPayload;
   try {
     jwtPayload = await verifyToken(resetToken);
     if (!jwtPayload) {
-      return res
-        .status(401)
-        .send({ message: "El tiempo para realizar cambio  expirado" });
+      return res.send({
+        results: "El tiempo para realizar cambio  expirado",
+        succes: false,
+        errors:
+          "El tiempo para realizar cambio ha expirado notifique al Administrador",
+      });
     }
     const cliente = await clienteModel.findOne({
       where: { Token: resetToken },
@@ -108,8 +128,6 @@ const getConsultaCliente = async (req, res) => {
 };
 
 const putCliente = async (req, res) => {
-  console.log(req.params);
-  console.log(req.body);
   //consultamos el codgo del giro por medio del nombre
   const _codGiro = await sequelize.query(
     "select Codigo from dbo.DteCat019 where Upper(Valores)=Upper((:dato))",
@@ -124,7 +142,7 @@ const putCliente = async (req, res) => {
   //Actualizamos  el cliente por medio de registro y tipoGiro
 
   const _Actulizar = await sequelize.query(
-    "update dbo.Clientes set Nrc=(:_Nrc),Alias=(:_Alias),Nombre=(:_Nombre),Correo=(:_Correo),CorreoDte=(:_CorreoDte),Telefono=(:_Telefono),Giro=(:_Giro),Zona=(:_Zona),actualizado=(:_actualizado),CodGiro=(:_CodGiro),NombreCodGiro=(:_NombreCodGiro), sincronizado_el=getDate() where replace(nit,'-','')=replace((:_nit),'-','')",
+    "update dbo.Clientes set  Subcribe=(:_Subcribe), Nrc=(:_Nrc),Alias=(:_Alias),Nombre=(:_Nombre),Correo=(:_Correo),CorreoDte=(:_CorreoDte),Telefono=(:_Telefono),Giro=(:_Giro),Zona=(:_Zona),actualizado=(:_actualizado),CodGiro=(:_CodGiro),NombreCodGiro=(:_NombreCodGiro), sincronizado_el=getDate() where replace(nit,'-','')=replace((:_nit),'-','')",
     {
       replacements: {
         _Nrc: req.body.Nrc,
@@ -139,10 +157,56 @@ const putCliente = async (req, res) => {
         _CodGiro: _codGiro[0][0].Codigo,
         _nit: req.body.Nit,
         _NombreCodGiro: req.body.CodGiro,
+        _Subcribe: req.body.Subcribe,
       },
     }
   );
+  const cliente = {
+    nit: req.body.Nit,
+    correo: req.body._Correo,
+    cliente: req.body.Nombre,
+  };
+  //enviarmos correo de valdiaciones
+  const token = await tokenSigEmail(cliente);
+  url = `https://${host}/email-confirm/${token}`;
+  verificactionLink = url;
+  await sequelize.query(
+    "update dbo.Clientes set  confirm_token=(:_token) where replace(nit,'-','')=replace((:_nit),'-','')",
+    {
+      replacements: {
+        _token: token,
+        _nit: req.body.Nit,
+      },
+    }
+  );
+  // enviamos el correo
 
+  await transporter.sendMail({
+    form: '"Soporte H2C " <carlosrobertovelasquez@gmail.com> ',
+    to: req.body.CorreoDte,
+    subject: "Activa tu Cuenta para tus DTE",
+    html: ` Hola,
+    <br>
+    <br>
+    Gracias por Actualizar Sus Datos en Nuestro Portal .Haga clic en el siguiente boton para verificar su correo electrónico: 
+    <br>
+    <br>
+   <a href="${verificactionLink}"><button style:"padding: 10px 20px;
+   background-color: #ff0000;
+   color: white;
+   border: none;
+   border-radius: 5px;
+   cursor: pointer;"> Click Activar Correo</button></a>
+   <br>
+   <br>
+   Este enlace caducará en 24 horas.
+   <br>
+   <br>
+   Que estes bien.
+   <br>
+   <br>
+   <span>H2C</span> Soporte`,
+  });
   return res.send({
     results: "Actulizado con Existo",
     succes: true,
@@ -150,10 +214,47 @@ const putCliente = async (req, res) => {
   });
 };
 
+const activarCliente = async (req, res) => {
+  const token = req.params.token;
+  let jwtPayload;
+  try {
+    jwtPayload = await verifyToken(token);
+    if (!jwtPayload) {
+      return res.send({
+        results: {},
+        succes: false,
+        errors: [
+          "El tiempo para realizar el cambio a expirado o no existe el Token",
+        ],
+      });
+    }
+    await sequelize.query(
+      "update dbo.Clientes set  confirmado=(:_valor) where confirm_token=(:_token)",
+      {
+        replacements: {
+          _token: token,
+          _valor: true,
+        },
+      }
+    );
+    res.send({
+      results: "Se activo con exito tu Correo",
+      succes: true,
+      errors: "",
+    });
+  } catch (error) {
+    res.send({
+      result: "",
+      succes: false,
+      errors: error,
+    });
+  }
+};
 module.exports = {
   getCliente,
   GeneraToken,
   getConsultaCliente,
   getNit,
   putCliente,
+  activarCliente,
 };
