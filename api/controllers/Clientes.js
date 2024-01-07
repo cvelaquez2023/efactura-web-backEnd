@@ -98,7 +98,7 @@ const getConsultaCliente = async (req, res) => {
         results: "El tiempo para realizar cambio  expirado",
         succes: false,
         errors:
-          "El tiempo para realizar cambio ha expirado notifique al Administrador",
+          "El tiempo para realizar cambio ha expirado notifique al Administrador gracias",
       });
     }
     const cliente = await clienteModel.findOne({
