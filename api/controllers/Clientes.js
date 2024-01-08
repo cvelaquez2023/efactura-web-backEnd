@@ -208,7 +208,7 @@ const putCliente = async (req, res) => {
    cursor: pointer;"> Click Activar Correo</button></a>
    <br>
    <br>
-   Este enlace caducará en 24 horas.
+   Este enlace caducará en 25 horas.
    <br>
    <br>
    Que estes bien.
