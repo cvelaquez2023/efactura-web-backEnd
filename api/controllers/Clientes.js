@@ -7,6 +7,7 @@ const {
 } = require("../models");
 const { tokenSign, verifyToken, tokenSigEmail } = require("../utils/handleJwt");
 const { transporter } = require("../config/mailer");
+
 const host = process.env.HOST;
 const getCliente = async (req, res) => {
   //Obtener lista de la base de datos
@@ -166,6 +167,14 @@ const putCliente = async (req, res) => {
     correo: req.body._Correo,
     cliente: req.body.Nombre,
   };
+  //Consultamos Conunto para Credeciales de Corrreo
+  const _correo = await sequelize.query(
+    `select * from dbo.conjunto where Conjunto_id=${req.body.compania}`,
+    {
+      type: QueryTypes.SELECT,
+    }
+  );
+ // console.log(_correo);
   //enviarmos correo de valdiaciones
   const token = await tokenSigEmail(cliente);
   url = `https://${host}/email-confirm/${token}`;
@@ -182,13 +191,13 @@ const putCliente = async (req, res) => {
   // enviamos el correo
 
   await transporter.sendMail({
-    form: '"Soporte H2C " <carlosrobertovelasquez@gmail.com> ',
+    form: '"Soporte H2C " <h2cgroup.dte@gmail.com> ',
     to: req.body.CorreoDte,
     subject: "Activa tu Cuenta para tus DTE",
     html: ` Hola,
     <br>
     <br>
-    Gracias por Actualizar Sus Datos en Nuestro Portal .Haga clic en el siguiente boton para verificar su correo electrónico: 
+    Gracias por Actualizar Sus Datos en Nuestro Portal para la Empresa : ${_correo[0].Nombre}  .Haga clic en el siguiente boton para verificar su correo electrónico: 
     <br>
     <br>
    <a href="${verificactionLink}"><button style:"padding: 10px 20px;
